@@ -1,0 +1,198 @@
+* This file is, in part, about UTF8 encoding
+  As such you need a UTF8 Font to read it properly!
+
+==========
+ Notation
+==========
+
+Whitespace:
+	Space          _    (  was too ambiguous [QED])
+
+Cursors
+	Backspace      \    ("backslash")
+	Return         /    (*not* NumPad:Enter)
+	Left           <
+	Right          >
+
+Modifiers:
+	Shift          ^    (aka SHF)
+	Green-Square   #    (aka GRN)
+	People         &    (aka PPL)
+	Orange-Circle  @    (aka ORN)
+
+Shift & Shift Lock
+	The driver can differentiate between a Modifier-Keypress and a Modifier-Lock.
+	(Any Modifier can be locked/unlocked with a Double-Click)
+
+	Given "MOD" is any one of the [above] four modifiers:
+		Press the MOD key                    :  [MOD]
+		Lock the MOD key                     :  [+MOD]
+		Press the MOD key while it is locked :  [*MOD]
+
+	...This may seem needless at first glance, but consider this:
+		+----------+----------+----------+
+		|  Shift   |  Key-Up  | Key-Down |
+		+----------+----------+----------+
+		| Lock-Off |   1  q   |   !  Q   |  (try it on your keyboard
+		+----------+----------+----------+       right now if you like)
+		| Lock-On  |   1  Q   |   !  q   |
+		+----------+----------+----------+
+
+	...And if I was going to implement it for one Modifier, I might as well
+	implement it for all of them.
+
+
+============================
+ "Standard" Keyboard layout
+============================
+
+The standard layout comes in groups and each group can be individually disabled
+in the configuration file.  See 'default.cfg' for details.
+
+UTF8 Keycodes [MODE_UTF8 'U']:
+------------------------------
+	ALL keys as marked on the keycap
+
+	Plus CAPITAL diacritic letters are available by
+		[+GRN] or [+ORN], then [SHF][Key]
+	or  [+SHF]            then [GRN][Key] or [ORN][Key]
+
+	A "Capital Euro Symbol" will translate as a "Euro Currency Symbol"
+
+	Shift-Lock (aka CAPS aka [+SHF] aka [+^]) can be enabled by:
+		[ORN][SHF]  Ie. Hold ORN, press SHF (as normal)  -or-
+		[SHF][SHF]  Ie. Double-Click SHF
+
+	Special Characters
+		Non-UK Mode:
+			[SHF][1..0]     =>  ! @ # $ % ^ & * ( )
+		UK Mode:
+			[SHF][1..0]     =>  ! " £ $ % ^ & * ( )
+
+Function-Keys [MODE_FUNC 'F']:
+------------------------------
+	[GRN][1..0]        =>  F1 ..F10
+	[+SHF][GRN][1..0]  =>  F11..F20
+
+	...Yes, there have always been 20 Function keys (not just 12)
+	...F11..20 have always been Shift+F1..10 (in Linux)
+
+Control-Keys [MODE_CTRL 'C']:
+-----------------------------
+	[PPL][Key]      => Ctrl+[Key]
+	[+GRN][PPL][W]  => Ctrl+@     (aka NUL)
+
+System Keys [MODE_SYS 'S']:
+---------------------------
+		[PPL][/]    =>  Alt-Return
+		[PPL][1]    =>  Esc
+		[PPL][2]    =>  Esc,Esc    ... 'cos I use it a lot
+		[PPL][0]    =>  Pause
+
+		            =>  PtrScr     ... unmappable (afaict)
+		            =>  Win        ... unmappable (afaict)
+		            =>  Menu       ... unmappable (afaict)
+
+Cursor Keys [MODE_MOVE 'M']:
+----------------------------
+	There are EIGHT of these: 
+		{Left, Right, Up, Down, PageUp, PageDown, Home, End}
+	...And we only have TWO (<- and ->) to play with ...Take a deep breath:
+
+	I decided "left"  is "the past"   (what you have already done)
+	      and "right" is "the future" (what you  are yet to   do )
+
+	With that logic in mind, and with three (of four) modifiers at our disposal:
+
+		[GRN][<]    =>  Up       ,----------------------------.
+		[GRN][>]    =>  Down     |       | GRN  | PPL  | ORN  |
+		[PPL][<]    =>  PgUp     |-------+------+------+------|
+		[PPL][>]    =>  PgDn     | Left  |  Up  | PgUp | Home |
+		[ORN][<]    =>  Home     | Right | Down | PgDn | End  |
+		[ORN][>]    =>  End      `----------------------------'
+
+	Other keys defined in this section are:
+		[GRN][ORN]  =>  Tab
+		[ORN][GRN]  =>  BackTab
+
+		[SHF][\]    =>  Del
+		[PPL][\]    =>  Ins
+
+Number Pad [MODE_NPAD] 'N':
+---------------------------
+	I'm sorry, I got bored trying to jam a full 104 key keyboard in to 47 keys
+	Essentially you are lacking the special keycodes for NumPad: + - * /
+	But, once you've got those, you're gonna want the 0..9 and . keys too
+	Then you'll want driver support for typing in Alt-Keycodes
+	And where the hell am I going to put the mouse controls?
+	No. Screw it. If you want them - write a config file that does them!
+
+
+===============
+ Layout Tables
+===============
+
+Even my UTF8 font does not have some of these characters!
+
+	,---------------------.
+	| 1 2 3 4 5 6 7 8 9 0 |
+	| Q W E R T Y U I O P |
+	| A S D F G H J K L , |
+	| ^ Z X C V B N M . / |
+	| # % < _______ > \ @ |
+	`---------------------'
+
+          First  character is WITHOUT Shift
+          Second character is   WITH  Shift
+
+                  No Modifier Locks
+,---------------------------------------------------.
+| [1!] [2"] [3#] [4$] [5%] [6^] [7&] [8*] [9(] [0)] |
+|                                                   |
+| [qQ] [wW] [eE] [rR] [tT] [yY] [uU] [iI] [oO] [pP] |
+|                                                   |
+| [aA] [sS] [dD] [fF] [gG] [hH] [jJ] [kK] [lL] [,;] |
+|                                                   |
+| {  } [zZ] [xX] [cC] [vV] [bB] [nN] [mM] [.:] [↵↵] |
+|                                                   |
+|  {  } {  } [← ] [_Space|NBSpace_] [→ ] [__] {  }  |  [Bksp|Del]
+`---------------------------------------------------'
+
+                 Green Modifier Lock
+,---------------------------------------------------.
+| [F1] [F2] [F3] [F4] [F5] [F6] [F7] [F8] [F9] [F0] |  [F11]..[F20] use [+SHF]
+|                                                   |
+| [! ] [@ ] [€₠] [$ ] [% ] [^ ] [& ] [* ] [( ] [) ] |
+|                                                   |
+| [~ ] [šŠ] [{ ] [} ] […⋮] [/_] ['_] [[ ] []_] [: ] |
+|                                                   |
+| {  } [` ] [« ] [» ] [- ] [| ] [< ] [> ] [? ] [↵↵] |
+|                                                   |
+|  {++} {  } [↑ ] [_Space|NBSpace_] [↓ ] [__] {⇥ }  |  [BkSp|Del]
+`---------------------------------------------------'
+
+                Orange Modifier Lock
+,---------------------------------------------------.
+| [  ] [  ] [  ] [  ] [  ] [  ] [  ] [  ] [  ] [  ] |
+|                                                   |
+| [¡⻘] [åÅ] [éÉ] [$ ] [þÞ] [Ýý] [úÚ] [íÍ] [óÓ] [= ] |
+|                                                   |
+| [áÁ] [ẞß] [ðÐ] [£ ] [¥ ] [\ ] [" ] [¤ ] [øØ] [;;] |
+|                                                   |
+| {  } [æÆ] [œŒ] [çÇ] [_ ] [+ ] [ñÑ] [µM] [¿‽] [↵↵] |
+|                                                   |
+|  {⇤ } {  } [↤ ] [_Space|NBSpace_] [↦ ] [__] {++}  |  [Bksp|Del]
+`---------------------------------------------------'
+
+                People Modifier Lock
+,---------------------------------------------------.
+| [e ] [x ] [  ] [  ] [  ] [  ] [  ] [  ] [  ] [p ] |  e=Esc, x=EscEsc, p=Pause
+|                                                   |
+| [^Q] [^W] [^E] [^R] [^T] [^Y] [^U] [^I] [^O] [^P] |  [+GRN][PPL][W] -> ^@
+|                                                   |
+| [^A] [^S] [^D] [^F] [^G] [^H] [^J] [^K] [^L] [  ] |
+|                                                   |
+| {  } [^Z] [^X] [^C] [^V] [^B] [^N] [^M] [  ] [ar] |  ar=AltReturn
+|                                                   |
+|  {  } {++} [↥ ] [_Space|NBSpace_] [↧ ] [__] {  }  |  [Ins|  ]
+`---------------------------------------------------'

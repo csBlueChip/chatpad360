@@ -1,0 +1,718 @@
+*******************
+ CAVEAT PRE-EMPTOR
+*******************
+I gotta be honest, I just can't be bothered to refactor the code for 
+user defined events right now.  I wrote the spec (the second half of
+this document) and to allow full flexibility, I think anyone who
+would be prepared to write MatchIDs would be equally capable of 
+opening event.c and adding some new events before typing `make`.
+
+I have no use for mouse events, but I expect I will at some point
+and then I will add them - Pull Requests welcome.
+
+I'd like to be able to edit the keyboard paramters from the keyboard itself.
+
+Events to control:
+	sendMouse(@x,@y)       // absolute positioning
+	sendMouse(+x,-y)       // relative positioning
+	sendMouse(setWrap)     // enable wrapping
+	sendMouse(btn:13)      // button presses
+	sendMouse(scr:1,+10)   // absolute wheel scroll
+	sendKey(1b:5b:30)      // send hex to keyboard
+	sendSys(lock:sgOP)     // set locks
+	sendSys(lock:sgOP+)    // set locks & LEDs
+	sendSys(led:SGop)      // set LEDs
+	sendSys(cfg:key=val)   // change absolute config value
+	sendSys(cfg:key=+val)  // change relative config value
+...and, of course, some way to support multiple actions per event
+
+I think maybe, Lock GRN, PPL & ORN and use ([SHF])[Key] to affect changes.
+
+So the resultant user matchID might resemble
+	[+???006088?=]=sendKey(2a)         # [PPL][8] => Numpad:*
+	[+???0505ww?=]=sendMouse(+10,0)    # [+GRN][+ORN][w] => Mouse up 10 pixels
+	[+???8555rr?=]=sendSys(cfg:rpt=1)  # Enable keyboard repeat
+
+	# [+SHF][+GRN][+PPL][+ORN][0][1] => multiple events
+	[+;=15555?01~]=sendKey(1b:5b:30);sendSys(lock:sgOP)
+
+Then you need to read them all in.
+Divvy them up by key-down and key-up
+Sort them by keycode
+perform a binary chop to find the start of the (eg) "+7" table
+scan from there in the table to see if you have a match
+trigger the event(s)
+...good luck
+
+I'd also like to add signal handlers to (eg) reload the config file.
+
+The ultimate incarnation will be a device driver - but having never written
+one before, don't hold your breath.
+
+I also want to try and port this code to the Digispark for people who just
+need it as a USB keyboard (such as car enthusiasts).
+...The digisparks are on order from China as we speak.
+
+==============
+ Chatpad Keys
+==============
+
+Fortunately I reaped a bunch of stuff off cliffle.com before it/he disappeared
+
+Keyboard Map
+------------
+	Keycap                       Keycode
+	---------------------        --------------------------------------
+	1 2 3 4 5 | 6 7 8 9 0        17  16  15  14  13 | 12  11  67  66  65
+	Q W E R T | Y U I O P        27  26  25  24  23 | 22  21  76  75  64
+	A S D F G | H J K L ,        37  36  35  34  33 | 32  31  77  72  62
+	^ Z X C V | B N M . /        M1  46  45  44  43 | 42  41  52  53  63
+	# % < _________ > \ @        M2  M8  55        54         51  71  M4
+
+Modifiers (shift keys)
+----------------------
+	^  shift
+	#  green square
+	%  people
+	@  orange ciricle
+
+Main Keys
+---------
+	Characters
+		0..9  numbers
+		A..Z  letters
+		_     space bar
+	Cursor control
+		/  enter
+		<  left arrow
+		>  right arrow
+		\  backspace
+
+Alternate characters (modifier+main)
+------------------------------------
+	I can't put them all in this file as many of them are not in ASCII
+	The easiest solution is to simply look at the chatpad <shrug>
+	Check the docs/ folder for a photo if you don't have a chatpad to hand
+	...See cp360_keys.h for more information
+
+==========
+ Protocol
+==========
+
+Bibliography
+------------
+	I gleaned much information from these sites:
+		# http://cliffle.com/project/chatpad/protocol/
+		# http://cliffle.com/project/chatpad/pinout/
+		# http://www.newsdownload.co.uk/pages/RPiGpioXBoxChatPad.html
+		# http://www.mp3car.com/forum/mp3car-technical-hardware/input-devices/111475-xbox360-chatpad-awsome-backlit-mini-keyboard/page16
+
+	Cliffle's information was invaluable. Sadly when I went to report my
+	additional findings back to him, his site was refusing connections :/
+	Fotunately I saved the pages before they disappeared, so they are 
+	in an archive in the docs directory :)
+
+	Many many thanks to Grumbel from mp3car.com for sharing his fuzzing data
+	which was used to get the modifier LEDs working.  There is definitely more
+	information to be gleaned from his excellent post ...But not today.
+
+Write (to chatpad)
+------------------
+	The first thing you need to do is send an Initialise packet 
+	{87,02,8C,1F,CC}[5] to kick-start the chatpad.
+
+	You then need to "Pat" the chatpad every second-ish with a KeepAwake packet
+	{87,02,8C,1B,D0}[5]
+
+	To start the chatpad, we:
+		10 send(init)
+		20 wait(time)
+		30 read(result)
+		40 if result != valid_status goto 10
+	The retry-count and the wait-time are configurable
+
+	After some staring at the Fuzzing data, I inferred this:
+		LED On  : Shift  = {87,02,8C,08,E3}[5]
+		        : Green  = {87,02,8C,09,E2}[5]
+		        : Orange = {87,02,8C,0A,E1}[5]
+		        : People = {87,02,8C,0B,E0}[5]
+
+		LED Off : Shift  = {05,87,02,8C,00,EB}[5]
+		        : Green  = {05,87,02,8C,01,EA}[5]
+		        : Orange = {05,87,02,8C,02,E9}[5]
+		        : People = {05,87,02,8C,03,E8}[5]
+
+	There's plenty more to be found :)
+
+Receive (from chatpad)
+----------------------
+	I have seen three packets come from the chatpad:
+
+	Status    : {A5, pp, qq, rr, ss, tt, uu, cs}[8]
+		cs == checksum == 2sComplement(sumOfBytes) == ((~(sumOfBytes))+1)&0xFF
+		ss & 80 == Main LEDs  {0=off, 80=on}
+		ss & 20 == Shift LED  {0=off, 80=on}
+		ss & 10 == Orange LED {0=off, 80=on}
+		ss & 08 == Green LED  {0=off, 80=on}
+		ss & 01 == People LED {0=off, 80=on}
+	I have yet to identify the purpose for the other bits/bytes
+	tt and uu always seem to be the same number
+
+	Type-41 : {41, 02, 08, 11, 01, 11, 7D, 01, 00, 00, 00, A1}[12]
+		The 08 could be the number of bytes that follow (excluding the checksum)
+
+		Sometimes the packet seems to get sent fragmented
+		    : {41, 02, 08, 11, 01, 11, 7D, 01}[8]
+		    : {00, 00, 00, A1}[4]
+		You can trigger this by sending:
+			{87,02,8C,06,E5}[5]
+			* Unknown packet: (13) {41,02,08,11,01,11,7D,01}[8]
+			* Unknown packet: (9) {00,00,00,A1}[4]
+
+	KeyChange : {B4, C5, 00, mm, k1, k2, 00, cs}[8]
+		cs == checksum == 2sComplement(sum+of+bytes) == ((~(sum+of+bytes)) +1) & 0xFF
+		mm == modifier flags
+		k1 == keycode of 1st key-down
+		k2 == keycode of 2nd key-down
+
+Key state change packet
+-----------------------
+
+	When a key is pressed-down or released-up, multiple identical packets are 
+	received. Some think the controller may be sending multiple copies of the 
+	packet in case one gets lost/corrupted ...I personally think it is a lack 
+	of "key debounce" in the chatpad's PIC firmware. But either way, you can 
+	(probably) ignore repeated packets ...If this turns out to be wrong you
+	will need to visit the "debounce" code in chatpad.c:decodeKey()
+
+	The chatpad protocol has a "modifiers" byte such that:
+		MODIFIER_SHIFT  == 1
+		MODIFIER_GREEN  == 2
+		MODIFIER_ORANGE == 4
+		MODIFIER_PEOPLE == 8
+	This modifier byte always shows which modifiers are currently 'down'
+
+	The protocol also has two bytes for (so dubbed) "main" characters
+		The 1st byte is the key which was pressed first,
+		the 2nd byte is the key which was pressed most recently
+
+	When a key is released, a fresh state is sent, here we use the notation
+	"+X" key is is pressed, and "-X" key X is release:
+		+A : k1=A, k2=0 : A-
+		+B : k1=A, k2=B : AB
+		-B : k1=A, k2=0 : A-
+		+B : k1=A, k2=B : AB
+		-A : k1=B, k2=0 : B-
+		+A : k1=B, k2=A : BA
+		-B : k1=A, k2=0 : A-
+		-A : k1=0, k2=0 : --
+
+	In theory, the chatpad could send a packet which said
+	"All four Modifiers, and two Main keys are being pressed"
+	Thus you might expect to be able to see up to 6 keystrokes at a time
+	But the chatpad firmware will NEVER return more than 2 key-down events:
+	IE. Two modifiers; two Main keys; or one of each - but that's the limit!
+	If you press down a third key, it will be COMPLETELY ignored.
+
+	It is important to notice that there is a subtle difference between
+	"Shift+A"-vs-"A+Shift" [you can try that one out on your PC]
+	The same applies to "Shift+Green"-vs-"Green+Shift", or "A+B"-vs-"B+A"
+
+
+=================
+ Driver Features
+=================
+
+All driver features can be enabled/disable/configured in the config file
+...is what I would say if I had written the config code. But right now you will
+have to edit global.c and change the values in usrCfg().
+
+Key-Repeat
+----------
+	As with double-click, events beyond the 9th repeat are all 
+	numbered 9.  [did someone say Yoko Ono?]
+
+	Config: Repeat enable/disable
+	        Disable repeat for modifier-keys only
+	        Start delay
+	        Repeat delay
+
+Double-Click
+------------
+	The code that handles "double-click" detection also handles
+	{triple-click, quadruple-click, ..., nontuple-click}
+	...All subsequent clicks are seen as 9-click events.
+
+	Config: Maximum time between clicks to be identified as a "double-click"
+
+	Note: There is no feature to turn this off as it can be easily ignored
+	      at no cost.
+
+Modifier-Lock
+-------------
+	A modifier's lock status is toggled {on,off} by double-clicking the 
+	modifier-key.
+		# If the lock is enabled , the LED behind it will be turned on.
+		# If the lock is disabled, the LED behind it will be turned off.
+
+	Config : Enable/Disable
+
+Wake-Key
+--------
+	If the keyboard is "sleeping", IE. The Main LEDs are off,
+	the first keystroke will be used to "wake" the keyboard
+	IE. It will NOT generate a key-event
+
+	Config : enable/Disable
+
+	When this is disabled, ALL keystrokes are converted to key-events
+	regardless of whether the Main LEDs are on or off.
+
+
+===============
+ Driver Output
+===============
+
+	Ultimately this is where it all ends up.
+		You press/release a key
+		The LEDs come on
+		The chatpad sends a packet to the Pi
+		The Pi converts that packet in an ID
+		The ID is converted in to an actual keystroke
+
+	The ID is a format of my own invention and SHOULD, I hope, cover
+	every possible key combination and interaction along with current
+	state information.
+	It is human-readable because it will be used as the basis for the
+	configuration file. There's a LOT of information packed in to this
+	"id", so take a deep breath before you read on.
+
+	Every time a keyboard event occurs {key-down, key-repeat-down, key-up}
+	occurs the driver generates an "ID" for the event in the following format:
+
+Key-Down and Key-Up Events
+--------------------------
+	Key-Down and Rpt-Down : |+fcsgpoK12|
+	Key-Up                : |-sgpoK12|
+
+	id[0] : Physical state change : '+' = Key-Down
+	                              : '-' = Key-Up
+
+Features
+--------
+	In Key-Down events the next two character describe which driver-features
+	are active:
+
+	'f' is ':'  =>  Double-Click ... (c = 0   ) => first click
+	                             ... (c = 1..9) => subsequent clicks
+
+	'f' is '*'  =>  Repeat-Key   ... (c = 1..9) = repeat counter
+
+	NB. A Double-Click is "+1"; A Triple-Click is "+2", etc
+
+Modifiers
+---------
+	There's a reason I've saved these 'til last ;) ...Enjoy:-
+
+	{s, g, p, o} are the four modifier states {Shift, Green, People, Orange}
+	repsectively.
+
+	Given Mod-Lock to mean "modifier locked on" (normally backlit)
+	 and  Mod-Key  to mean "modifier key in Key-Down state" (physcially)
+
+	Each modifier can be in one of FOUR states:
+		     Mod-Lock  Mod-Key
+		0 =>   no        no     
+		1 =>   no        yes    
+		2 =>   yes       no     
+		3 =>   yes       yes    
+
+Keycap
+------
+	'K' : After the four modifiers [see below], the event-id shows the keycap
+	      pressed - that's the WHITE character on the physical keycap.
+
+	Some keys do not have a "nice" and/or "printable" ASCII character on the
+	keycap ...These keys have been dubbed as such:
+		Whitespace
+			Space         :  _  (underline)
+			Enter         :  /  (forward-slash)
+		Modifiers
+			Shift         :  ^
+			Green-square  :  #
+			People        :  &
+			Orange-Circle :  @
+		Cursor Control
+			Left-Arrow    :  <
+			Right-Arrow   :  >
+			Backspace     :  \  (backslash)
+
+	For letters {a..z}, the lower-case letter is ALWAYS used.
+
+	Numbers {0..9} are as you would expect.
+'
+Rollover
+--------
+	'1' and '2' : The state of the Rollover Buffer.
+
+	Remember, the chatpad will only ever acknowlege AT MOST *two* simultaneous
+	keystrokes.
+		'1' is the key which was pressed earliest.
+		'2' is the key which was presses most recently.
+	...A running example of this can be found in the [above] section
+	   Protocol -> Key state change packet
+
+	An unused slot in the rollover buffer is denoted by a *
+	EG. [+=00000pp*] => p
+
+A Few Random Examples
+---------------------
+
+	  fc^#&@k12
+	|+:00000pp*|   +     key-down event
+	               :0    initial press
+	               0000  no modifiers
+	               p     keycap pressed is "p"
+	               p*    only "p" in the rollover buffer
+
+	  ^#&@k12
+	|-2000qk*|     -     key-up event
+	               2000  shift-lock
+	               q     keycap released is "q"
+	               k*    only "k" (left over) in the rollover buffer
+
+	  fc^#&@k12
+	|+:20211@&@|   +     key-down event
+	               :2    triple-click
+	               0211  green-lock + keycap People + keycap Orange
+	               @     keycap is "orange-circle"
+	               &@    "people" and "orange-circle" in the rollover buffer
+
+	  fc^#&@k12|
+	|+*92322\#\|   +     key-down event
+	               *9    Nine-or-more repeats
+	               2222  All modifier locks on + keycap Green
+	               \     keycap is "backspace"
+	               #\    "green-square" and "backsapce" in the rollover buffer
+
+
+===========
+ MATCH IDS
+===========
+
+	For clarity, a matchID is designed to use the same format as an eventID.
+
+	,---------------------------------------.
+	|         |   Key Down     |   Key Up   |
+	|---------+----------------+------------|
+	| eventID | |+fcsgpoK12|   | |-sgpoK12| |
+	| matchID | |+fecsgpoK12x| | |-sgpoK12| |
+	`---------+----------------+------------'
+
+	NOTE: The matchID for Key-Down has an extra "e" near the beginning
+	                               and an extra "x" at the end
+
+Key Travel
+----------
+	If 1st chr of matchID is  +  match  only key-down          events
+	If 1st chr of matchID is  -  match  only            key-up events
+	If 1st chr of matchID is  ?  match  both key-down & key-up events
+
+	Key Travel : 3 match options
+
+Driver Function (key-down only)
+-------------------------------
+	if  f  in the matchID is  ;  match click          events
+	if  f  in the matchID is  *  match         repeat events
+	if  f  in the matchID is  ?  match click & repeat events
+
+	if  e  in the matchID is  ?  do not check the function counter 'c'
+	if  e  in the matchID is  =  check ( eventID(c) == matchID(c) )
+	if  e  in the matchID is  !  check ( eventID(c) != matchID(c) )
+	if  e  in the matchID is  <  check ( eventID(c) <  matchID(c) )
+	if  e  in the matchID is  >  check ( eventID(c)  > matchID(c) )
+	if  e  in the matchID is  {  check ( eventID(c) <= matchID(c) )
+	if  e  in the matchID is  }  check ( eventID(c) >= matchID(c) )
+
+	(Better suggestions for 1 character to mean <= or >= please)
+
+	Example Time:
+		|+??0  ignore driver functions*
+		|+;=0  first keypress only
+		|+*>9  error, counter can NEVER be more than 9
+		|+*}9  repeat counter has reached its maximum
+		|+;=1  key has been double-clicked
+		|+;=2  key has been triple-clicked
+		|+*>4  key has repeated more than 4 times
+		|+;!1  this is NOT a double-click
+
+	* Most driver functions can be disabled in the configuration if desired
+
+	Driver Functions : 1 + (2 * (7 * 10)) match options
+
+Modifier Keys
+-------------
+	There are FOUR Modifier-Keys s, g, p, o [I love you too].
+		{^=Shift, #=Green-Square, &=People, @=Orange-Circle}
+
+	We allow for detection of ANY combination of states of Modifier-Keys
+	and Modifier-Locks ...That is to say (eg.) we can differentiate between
+	'shift' and 'caps-lock' and even what happens if you press 'shift'
+	while 'cap-lock' is enabled.
+	The same is true for all four modifiers.
+
+	Try it on a PC:
+		Shift        changes both letters & numbers {z7} -> {Z&}
+		        Caps changes only letters           {z7} -> {Z7}
+		Shift + Caps changes only           numbers {z7} -> {z&}
+
+	When working out matchID tags, we need to allow for NINE (of TWELVE) cases
+		     Mod-Lock  Mod-Key
+		0 =>   no        no     
+		1 =>   no        yes    
+		2 =>   yes       no     
+		3 =>   yes       yes    
+
+		4 =>   ?         ?       ... This is "match any"
+		5 =>   ?         yes    
+		6 =>   yes       ?      
+		7 =>   !key      !lock   ... Either, but not both (lock ^ key)
+
+		8 =>   ?         ?       ... Either OR both (lock | key)
+		9 =>   ?         no     
+		: =>   no        ?      
+		; =>   no        no      ... Same as #0
+
+	Given, I assume, only techies will have read this far, or care to try and
+	design a key-table ...Feel free to ask:
+		"Why include #8.  Why use : (not A).  And what's with ;"
+	# Even putting "check-enabled" before "check-disabled" was deliberate!
+	# Regarding the : and ; ...Go and look at the numbers on an ASCII chart
+	# Check out the bit-pattern from the list
+		check-disabled
+		|check-enabled
+		||mod-lock
+		|||mod-key
+		||||
+		0000
+
+	# Finally, here's the code which does it:
+
+	evt   = e - '0';      // event modifier value (from event-id string)
+	usr   = u - '0';      // user  modifier value (from check string)
+	mode  = usr & (4+8);  // Extract check mode
+	usr   = usr &   3;    // Extract check flags
+	match = false;        // Assume failure
+	switch (mode) {       // Pseudo-code, infer "break;"s
+		case 0:  if (  evt        == usr)  match = true ;  // Match Both
+		case 1:  if (( evt & usr) == usr)  match = true ;  // Check Enabled
+		case 2:  if ((~evt & usr) == usr)  match = true ;  // Check Disabled
+	}
+
+	Couple of random examples:
+		0000   All modifiers off
+		4444   Couldn't care less about any of the modifiers
+		2000   Only Caps-Lock
+		3444   Caps-Lock + Shift + don't care about the others
+		5021   Shift-Key + Nothing_Green + People-Lock + Orange-Key
+		9:;4   Shift-Lock_Off + Green-Lock_Off + Nothing_People + Anything_Orange
+
+	Modifiers : 12^4 possible  and  9^4 unique  match options
+
+Keycap
+------
+	'K' is the character on the keycap.
+
+	Letters are always lowercase.
+	The symbols for whitespace, modifiers, and cursors are listed [above] in 
+		Driver Output -> Keycap
+
+	To match the infamous "anykey", use ?
+
+	Examples:
+		p  match p
+		#  match green-square
+		6  match 6
+		\  match backspace
+		?  any key will do (I don't have a dream)
+
+	Keycap : 1 + 47 match options
+
+Rollover
+--------
+	'1' and '2' are the keys in the rollover buffer.
+
+	Letters are always lowercase.
+	The symbols for whitespace, modifiers, and cursors are listed [above] in 
+		Driver Output -> Keycap
+
+	Full details of the rollover buffer can be found [above] in
+		Driver Output -> Rollover
+
+	Here we can match the exact rollover buffer, or just one half of it.
+	We can also ask if two keys are in the buffer irrespective of sequence.
+
+	*  =>  Empty buffer slot - If the 1st slot is empty, so is the 2nd
+	?  =>  Any key
+
+	x  =>  ~ : a SUFFIXING  ~  means "in any order"
+	       = : a SUFFIXING  =  means "in the specified order"
+
+	Examples
+		h*=  match lonely h
+		du=  match d followed by u
+		?x=  anything followed by x
+		*h=  will never match (first half of buffer empty)
+		**=  can only match for SOME key-up events
+		J?~  j and a.n.other key pressed together
+		10~  1 and 0 being pressed together (in any order)
+
+	Rollover : (47 + 2) * 2 match options
+
+Match Possibilities
+-------------------
+	Total number of possible matchID's:
+		Key Travel       : 3                          =     3
+		Driver Functions : 1 + (2 * (7 * 10))         =   141
+		Modifiers        : 9^4 unique (12^4 possible) =  6561 (20736)
+		Keycap           : 1 + 47                     =    48
+		Rollover         : (47 + 2) * 2               =    98
+		                  --------------------------------------------
+		                  => 3 * 141 * 6561 * 48 * 98
+		                  ============================================
+		TOTAL:            13,055,025,312
+
+	With over 13 billion possibilites, this means a few things:
+		# Please, NEVER expect a single "every possibility" config file
+		# There is a built in (optimised) system for the normal stuff such as
+		  @ Modifier handling, Shift, UnShift, ShiftLock, etc.
+		    You may choose to change the handling, if you don't like it [not currently true //!]
+		  @ Keyboard repeat
+		    Fully configurable timings (with theoretical uS accuracy)
+		    If you want to specifically handle (eg.) the 43rd repeat,
+		      you will, sadly, need to implement that in your program
+		  @ "Double-Click"
+		    Fully configurable timings (with theoretical uS accuracy)
+		    You can simply choose to ignore this if you don't care for it
+		  @ Generating all ASCII characters
+		    You will need to override this if you don't use ASCII*
+		  @ Generating UTF-8 characters for non-ASCII characters
+		    You will need t oover-ride this if you don't use UTF8
+		# I realise writing a keycode config file is probably a bit daunting,
+		  but it IS very logical, and once you've done a few, it's actually 
+		  surprisingly quick to do the rest.
+		# You should only really need to write a config if you are going to do
+		  something weird like use 1 as an extra shift key [no idea!]
+		# If I have missed a key combo you would have liked - WTF IS IT?
+
+	* If you ARE hooking this up to an IBM, I'd love to know about it :)
+
+Generating a matchID
+--------------------
+	Character #1 (key-down or key-up):
+		.------------------.
+		| Key-Down   |  +  |
+		| Key-Up     |  -  |   #1
+		| Don't Care |  ?  |
+		`------------------'
+
+	Character #2 (key-down or key-held):
+		.------------------.
+		| Click      |  ;  |
+		| Repeat     |  *  |   #2
+		| Don't Care |  ?  |
+		`------------------'
+
+	Character #3 (compare type):
+		.------------------.
+		| if #2 = ?  |  ?  |
+		|            |     |
+		| equal      |  =  |
+		| not-equal  |  !  |
+		| less-than  |  <  |   #3
+		| more-than  |  >  |
+		| less/equal |  {  |
+		| more/equal |  }  |
+		`------------------'
+
+	Character #4 (comparison value)
+		.---------------------.
+		| if #3 = ?  |   ?    |
+		|            |        |   #4
+		| 0..9       |  0..9  |
+		`---------------------'
+
+	Character #5 (shift modifier):
+	Character #6 (green-sqaure modifier):
+	Character #7 (people modifier):
+	Character #8 (orange-circle modifier):
+		.--------------------------.
+		| Mod-Key | Mod-Lock |     |
+		| Pressed | Enabled  |     |
+		|--------------------------|
+		|  yes    |   yes    |  3  |
+		|  yes    |   no     |  2  |
+		|  yes    |   ?      |  6  |
+		|         |          |     |
+		|  no     |   yes    |  1  |   #5,6,7,8
+		|  no     |   no     |  0  |
+		|  no     |   ?      |  :  |
+		|         |          |     |
+		|  ?      |   yes    |  5  |
+		|  ?      |   no     |  9  |
+		|  ?      |   ?      |  4  |
+		|         |          |     |
+		|  !lock  |   !key   |  7  | <- Either, not both
+		|  |lock  |   |key   |  8  | <- Either, or both
+		`--------------------------'
+
+	Character #9 (keycap):
+		.--------------------.
+		| don't care |   ?   |
+		|            |       |
+		| 0-9        |  0-9  |
+		| a-z        |  a-z  |
+		|            |       |
+		| shift      |   ^   |
+		| green      |   #   |
+		| people     |   &   |
+		| orange     |   @   |   #9
+		|            |       |
+		| . (stop)   |   .   |
+		| , (coma)   |   ,   |
+		| space      |   _   |
+		| enter      |   /   |
+		|            |       |
+		| backspace  |   \   |
+		| left       |   <   |
+		| right      |   >   |
+		`--------------------'
+
+	Character #10 (rollover early):
+	Character #11 (rollover late):
+		.---------------------.
+		| don't care |   ?    |
+		|            |        |
+		| empty      |   *    |   #10,11
+		|            |        |
+		| keycap     | keycap |
+		`---------------------'
+		** For keycap values, see #9 [above]
+
+	Character #12 (rollover sequence):
+		.------------------.
+		| don't care |  ?  |
+		|            |     |
+		| In-order   |  =  |   #10,11
+		|            |     |
+		| Any-order  |  ~  |
+		`------------------'
+
+
+
+
+
+
+
+
+

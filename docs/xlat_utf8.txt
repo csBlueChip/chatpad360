@@ -1,0 +1,72 @@
+==============
+ Bibliography
+==============
+
+	http://www.fileformat.info/info/unicode/utf8.htm
+	http://www.utf8-chartable.de/
+	http://www.fileformat.info/info/unicode/char/2026/index.htm
+	                                             ^^^^
+
+=======
+ Notes
+=======
+
+# Many of the keycap characters exist outside of ASCII 
+  and others exist outside of ANSI.
+
+# This is the UTF-8 Translation Table for those keys
+  These will, obviously, only work on terminals with UTF-8 support
+
+# I have substituted "Currency Symbol" for M$Points Symbol
+  ...Which serendipitously, turned out to be the correct choice!
+  http://gaming.stackexchange.com/questions/86438/how-do-i-insert-symbols-in-games-for-windows-live-messages
+
+# NB. Grn+E => "Euro Sign"     : http://www.fileformat.info/info/unicode/char/20ac/index.htm
+      NOT "Euro Currency Sign" : http://www.fileformat.info/info/unicode/char/20a0/index.htm
+
+	.-------v--------------vv---------------------vv-
+	|       |              ||        UTF-8        || 
+	|       |              ||~~~~~~~~~~~~~~~~~~~~~|| 
+	|  Key  | Name         || Norm     | Shift    || 
+	|=======+==============++==========+==========++=
+	| Grn E | euro         || e2 82 ac |    --    || 
+	| Grn S | s caron      || c5 a1    | c5 a0    || 
+	| Grn G | ellipsis     || e2 80 a6 |    --    || 
+	| Grn X | <<           || c2 ab    |    --    || 
+	| Grn C | >>           || c2 bb    |    --    || 
+	|       |              ||          |          || 
+	| Orn Q | ! inverted   || c2 a1    |    --    || 
+	| Orn W | a overring   || c3 a5    | c3 85    || 
+	| Orn E | e acute      || c3 a9    | c3 89    || 
+	| Orn T | thorn        || c3 be    | c3 9e    || 
+	| Orn Y | y acute      || c3 bd    | c3 9d    || 
+	| Orn U | u acute      || c3 ba    | c3 9a    || 
+	| Orn I | i acute      || c3 ad    | c3 8d    || 
+	| Orn O | o acute      || c3 b3    | c3 93    || 
+	| Orn A | a acute      || c3 a1    | c2 81    || 
+	| Orn S | eszett       || c3 9f    | e1 ba 9e || 
+	| Orn D | eth          || c3 b0    | c3 90    || 
+	| Orn F | pound        || c2 a3    |    --    || 
+	| Orn G | yen          || c2 a5    |    --    || 
+	| Orn K | M$Points     || c2 a4    |    --    || 
+	| Orn L | o stroke     || c3 b8    | c3 98    || 
+	| Orn Z | ae           || c3 a6    | c3 86    || 
+	| Orn X | oe           || c5 93    | c5 92    || 
+	| Orn C | c cedilla    || c3 a7    | c3 87    || 
+	| Orn N | n tilde      || c3 b1    | c3 91    || 
+	| Orn M | mu           || c2 b5    | 4d       || 
+	| Orn . | ? inverted   || c2 bf    |    --    || 
+	|       |              ||          |          || 
+	|                                             || 
+	|    I Proffer these additions:               ||
+	|        Shf+Grn+E => Euro Currency Symbol    ||
+	|        Shf+Grn+G => Vertical ellipsis       ||
+	|        Shf+Orn+Q => Inverted Interrobang    ||
+	|        Shf+Orn+. => Interrobang             ||
+	|                                             || 
+	|       |              ||          |          || 
+	| Grn E | euro         || e2 82 ac |*e2 82 a0 || 
+	| Grn G | ellipsis     || e2 80 a6 |*e2 8b ae || 
+	| Orn Q | ! inverted   || c2 a1    |*e2 b8 98 || 
+	| Orn . | ? inverted   || c2 bf    |*e2 80 bd || 
+	`-------^--------------^^---------------------^^-
