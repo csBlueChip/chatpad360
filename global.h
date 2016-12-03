@@ -10,8 +10,9 @@
 //----------------------------------------------------------------------------
 typedef
 	enum device_t {
-		DEV_STDOUT = 0,
-		DEV_PTY,
+		DEV_STDOUT = 0x01,
+		DEV_TTY    = 0x02,
+		DEV_KEYLOG = 0x04,
 	}
 device_t;
 
@@ -45,6 +46,7 @@ typedef
 
 		char*     term;         // Name of input tty "/dev/pts/1"
 		int       termfd;       // File descriptor for open terminal
+		FILE*     termfh;       // File handle for terminal
 
 		int       init_retry;   // Number of retries to init the chatpas
 		int       init_uSwait;  // Time to wait for an init reply (microseconds)
@@ -70,7 +72,9 @@ global_t;
 SCOPE  global_t g;
 
 //----------------------------------------------------------------------------
-void     cleanup (void) ;
-error_t  init (void) ;
+error_t  init     (void) ;
+error_t  usrCfg   (void) ;
+error_t  parseCLI (int argc,  char** argv) ;
+char*    getStr   (char* val,  int lcnt) ;
 
 #endif // _GLOBAL_H_

@@ -10,14 +10,16 @@
 
 //------------------------------------------------------------------------------
 static
-void  sendCode (char*  kc)
+void  sendCode (char* kc)
 {
-	//printf("[%02X:%02X:%02X:%02X:%02X:%02X]", kc[0], kc[1], kc[2], kc[3], kc[4], kc[5]);
+	//INFOF("[%02X:%02X:%02X:%02X:%02X:%02X]", kc[0], kc[1], kc[2], kc[3], kc[4], kc[5]);
 
-//	if (g.device == DEV_PTY) {
-		send2term(kc);
+	if (g.device & DEV_TTY) {
+		send2termfd(kc);
+	}
 
-//	} else {  // stdio
+	// stdio
+	if (g.device & DEV_STDOUT) {
 		// Handle escape codes
 		if (kc[0] == '\x1b') {
 			printf("^[%s", (kc[1] == '\x1b') ? "^[" : &kc[1]);
@@ -29,13 +31,25 @@ void  sendCode (char*  kc)
 
 		// Handle everything else
 		} else printf("%s", kc) ;
-//	}
+		fflush(stdout);
+	}
+
+	// Keyboard logger
+	if (g.device & DEV_KEYLOG) {
+	}
 }
 
 //------------------------------------------------------------------------------
 error_t  id2event (char* id)
 {
 	char*  code = NULL;
+
+	// Wake the terminal
+	// If there is some unknown-to-me and EFFICIENT method to
+	// work out if this is required, then I'd like to know about it
+	// In lieu of that knowledge - we make sure the terminal is awake
+	// with EVERY keystroke
+	send2termfh(ESC"[13]");
 
 	// Perform user "pre" translation
 	if (g.matchMode & MODE_PRE)  code = xlat_pre(id) ;

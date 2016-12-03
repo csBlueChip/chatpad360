@@ -1,20 +1,33 @@
 #include <fcntl.h>  // open/close
 #include <sys/ioctl.h> // ioctl
 #include <unistd.h> // sleep
+#include <string.h> // strcmp
+#include <stdio.h>  // printf, fopen
+
+#define ESC "\x1b"
 
 int main (int argc, char** argv)
 {
-//	int  fd = open("/dev/pts/2", O_WRONLY /*| O_NOCTTY*/ | O_NDELAY);
-	int  fd = open("/dev/pts/2", O_WRONLY | O_NOCTTY | O_NDELAY);
-	if (fd == -1)  return 1 ;
+	if (argv[1] && *argv[1] == 'w') {
+		FILE*  fh = fopen("/dev/tty1", "wb");
+		printf("Wake terminal\n");
+		if (fh == NULL) return 1 ;
+		fprintf(fh, ESC"[13]");
+		fclose(fh);
 
-	while (1) {
-		char*  cp = (argc > 1) ? argv[1] : "ls\n" ;
-		while (*cp)  ioctl(fd, TIOCSTI, cp++) ;
-		sleep(3);
+	} else {
+		int    fd = open("/dev/tty1", O_WRONLY | O_NDELAY | O_NOCTTY);
+		if (fd == -1)  return 1 ;
+		while (1) {
+			char*  cp = (argc > 1) ? argv[1] : "ls\n" ;
+			printf("\nSend |%s|...", cp);
+			while (*cp)  ioctl(fd, TIOCSTI, cp++) ;
+			printf(" Wait...", cp);
+			sleep(3);
+		}
+	close(fd);
 	}
 
-	close(fd);
 
 	return 0;
 }

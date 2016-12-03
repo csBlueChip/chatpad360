@@ -43,6 +43,8 @@
 #include "debug.h"
 #include "io.h"
 #include "event.h"
+#include "xlat.h"
+#include "debug.h"
 
 //----------------------------------------------------------------------------
 // Surely this mapping must make sense if you look at the way the
@@ -404,7 +406,7 @@ unsigned int  decodePkt (uint8_t* buf)
 		if ((err = decodeStatus(buf)) == ERR_OK) {
 			RUNDBGF("s");
 		} else {
-			printf("\n* Bad Status packet: (%d) ", err);
+			INFOF("\n* Bad Status packet: (%d) ", err);
 			goto dump;
 		}
 		goto done;
@@ -428,7 +430,7 @@ unsigned int  decodePkt (uint8_t* buf)
 		}
 		if (err == ERR_BOUNCE)  goto done ;  // debouncing
 
-		printf("\n* Bad key packet: (%d) ", err);
+		INFOF("\n* Bad key packet: (%d) ", err);
 		goto dump;
 	}
 
@@ -437,18 +439,18 @@ unsigned int  decodePkt (uint8_t* buf)
 	// third byte might be a payload length?
 	len = 12;
 	if ((*buf >= len) && (buf[1] == 0x41)) {
-		printf("\n? Type 0x41 packet: ");
+		INFOF("\n? Type 0x41 packet: ");
 		goto dump;
 	}
 
 	// We failed to identify the packet - scrap the whole buffer
 	len = *buf;
-	printf("\n! Unknown packet: ");
+	INFOF("\n! Unknown packet: ");
 	goto dump;
 
 dump:
 	dumpBuf(buf);
-	printf("\n");
+	INFOF("\n");
 	goto done;
 
 done:
@@ -479,27 +481,42 @@ int  main (int argc,  char** argv)
 	(void)argv;
 
 	// Init global variables
+	INFOF("# System initialise\n");
 	init();
 
+	INFOF("# Parse CLI\n");
+	parseCLI(argc, argv);
+
+	// Parse the config file
+	if (!g.cfg)  g.cfg  = getStr("/etc/chatpad360.cfg", -1);
+	if ((err = usrCfg()) != ERR_OK)  return err ;
+
+	// Last ditch hope for a uart and a terminal
+	if (!g.uart)  g.uart = getStr("/dev/serial0", -2);  // Pi0..3 compatible
+	if (!g.term)  g.term = getStr("/dev/tty1", -3);
+
+	// We just hard-tweak the keyboard map for the GBP symbol
+	if (g.uk)  setUK() ;
+
 	// Init remote device
-	printf("# Open Terminal on %s\n", g.term);
+	INFOF("# Open Terminal on %s\n", g.term);
 	if ( (err = openTerm(g.term)) != ERR_OK)  return error(err) ;
-	printf("  OK\n");
+	INFOF("  OK\n");
 
 	// Open the serial port
-	printf("# Open UART on %s\n", g.uart);
+	INFOF("# Open UART on %s\n", g.uart);
 	if ( (err = openUART(g.uart)) != ERR_OK)  return error(err) ;
-	printf("  OK\n");
+	INFOF("  OK\n");
 
-	printf("# Initialise Chatpad\n");
+	INFOF("# Initialise Chatpad\n");
 	for (i = 0;  i < g.init_retry;  i++) {
 		// Send init command
-		printf("  > Send Init (%d of %d)\n", i+1, g.init_retry);
+		INFOF("  > Send Init (%d of %d)\n", i+1, g.init_retry);
 		if (tx(cp_init) != ERR_OK)  (void)error(ERR_TXFAIL) ;
 
 		// Give the chatpad a moment to initialise
 		usleep(g.init_uSwait);
-		printf("  < Check for status message");
+		INFOF("  < Check for status message");
 
 		// See if there is a Status message (yet)
 		if (rx(buf, sizeof(buf)) != ERR_OK) (void)error(ERR_RXFAIL) ;
@@ -507,11 +524,11 @@ int  main (int argc,  char** argv)
 		if (g.alive)  i = g.init_retry ;
 	}
 	if (i == g.init_retry)  return error(ERR_INITFAIL) ;
-	printf("  OK\n");
+	INFOF("  OK\n");
 
 	showStatus();
 
-	printf("# Running...");
+	INFOF("# Running...");
 	FOREVER {
 		error_t  err;
 

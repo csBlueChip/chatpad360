@@ -5,6 +5,7 @@
 #define PKT_DEBUG 0
 #define KEY_DEBUG 0
 #define RUN_DEBUG 0
+#define INF_DEBUG 1
 
 //----------------------------------------------------------------------------
 #include <stdio.h>
@@ -26,6 +27,12 @@
 #	define KEYDBGF(...)  do{ printf(__VA_ARGS__);  fflush(stdout); }while(0)
 #else
 #	define KEYDBGF(...)  (void)0
+#endif
+
+#if INF_DEBUG == 1
+#	define INFOF(...)  do{ printf(__VA_ARGS__);  fflush(stdout); }while(0)
+#else
+#	define INFOF(...)  (void)0
 #endif
 
 //----------------------------------------------------------------------------

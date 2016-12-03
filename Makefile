@@ -18,7 +18,7 @@ BLDTYPE=exe
 # All file extensions are appended later
 #
 TOOLNAME = chatpad
-TESTPRAM =
+TESTPRAM = default.cfg
 
 #------------------------------------------------------------------------------
 # Commands (for future cross platform support)

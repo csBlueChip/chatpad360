@@ -12,10 +12,12 @@
 //----------------------------------------------------------------------------
 void  spin (void)
 {
+#if INF_DEBUG == 1
 	static int i = 0;
 
 	printf("%c\b", "|/-\\"[++i&3]);
 	fflush(stdout);
+#endif
 
 	return;
 }
@@ -25,12 +27,12 @@ void  dumpBuf (uint8_t* buf)
 {
 	int  i;
 
-	printf("{");
+	INFOF("{");
 	if (*buf) {
-		for (i = 1;  i < *buf;  i++)  printf("%02X,", buf[i]) ;
-		printf("%02X}[%d]", buf[i], i);
+		for (i = 1;  i < *buf;  i++)  INFOF("%02X,", buf[i]) ;
+		INFOF("%02X}[%d]", buf[i], i);
 	} else {
-		printf("}[]");
+		INFOF("}[]");
 	}
 
 	return;
@@ -71,15 +73,15 @@ void  showStatus (void)
 {
 	int  i = 0;
 
-	printf("# Status {");
-	for (i = 0;  i < STATUSLEN -1;  i++)  printf("%02X,", g.st.status[i]) ;
-	printf("%02X}[%d]\n", g.st.status[i], i);
+	INFOF("# Status {");
+	for (i = 0;  i < STATUSLEN -1;  i++)  INFOF("%02X,", g.st.status[i]) ;
+	INFOF("%02X}[%d]\n", g.st.status[i], i);
 
-	printf("  LEDs : Main   : %s\n", g.st.ledMain ? "on" : "off");
-	printf("       : Shift  : %s\n", g.st.ledShf  ? "on" : "off");
-	printf("       : Green  : %s\n", g.st.ledGrn  ? "on" : "off");
-	printf("       : People : %s\n", g.st.ledPpl  ? "on" : "off");
-	printf("       : Orange : %s\n", g.st.ledOrn  ? "on" : "off");
+	INFOF("  LEDs : Main   : %s\n", g.st.ledMain ? "on" : "off");
+	INFOF("       : Shift  : %s\n", g.st.ledShf  ? "on" : "off");
+	INFOF("       : Green  : %s\n", g.st.ledGrn  ? "on" : "off");
+	INFOF("       : People : %s\n", g.st.ledPpl  ? "on" : "off");
+	INFOF("       : Orange : %s\n", g.st.ledOrn  ? "on" : "off");
 
 	return;
 }

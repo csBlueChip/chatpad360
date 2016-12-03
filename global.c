@@ -9,6 +9,7 @@
 #include "str2n.h"
 #include "strim.h"
 #include "strdup.h"
+#include "debug.h"
 
 #include <stdlib.h>
 #include <sys/time.h>
@@ -17,6 +18,7 @@
 #include <string.h>
 
 //----------------------------------------------------------------------------
+static
 void  cleanup (void)
 {
 	FREE(g.cfg);
@@ -24,13 +26,17 @@ void  cleanup (void)
 	FREE(g.term);
 
 	CLOSE(g.uartfd);
+
 	CLOSE(g.termfd);
+	FCLOSE(g.termfh);
+
 	FCLOSE(g.cfgfh);
 
 	return;
 }
 
 //----------------------------------------------------------------------------
+static
 bool  isTrue (char* val,  int lcnt)
 {
 	if ( STRIEQ(val, "on") || STRIEQ(val, "true") || 
@@ -39,18 +45,21 @@ bool  isTrue (char* val,  int lcnt)
 	if ( STRIEQ(val, "off") || STRIEQ(val, "false") || 
 	     STRIEQ(val, "0")   || STRIEQ(val, "no"   ) )  return false ;
 
-	printf("! Config error: Line %d - use true/false, on/off, yes/no or 1/0\n", lcnt);
+	(void)lcnt;
+	INFOF("! Config error: Line %d - use true/false, on/off, yes/no or 1/0\n", lcnt);
 	exit(error(ERR_BADCFG));
 }
 
 //----------------------------------------------------------
+static
 int  getN (char* val,  int lcnt)
 {
 	uint32_t  d;
 
 	if (str2n(val, &d))  return (int)d ;
 
-	printf("! Config error: Line %d - not a valid number\n", lcnt);
+	(void)lcnt;
+	INFOF("! Config error: Line %d - not a valid number\n", lcnt);
 	exit(error(ERR_BADCFG));
 }
 
@@ -63,19 +72,20 @@ char*  getStr (char* val,  int lcnt)
 		if ( (cp = strdup(val)) )  
 			return cp;
 		else {
-			printf("! Config error: Line %d - malloc() fail\n", lcnt);
+			INFOF("! Config error: Line %d - malloc() fail\n", lcnt);
 			exit(255);
 		}
 	}
 
 	if (lcnt == -1)
-		printf("! Config error: Line %d - bad string in exe\n", lcnt);
+		INFOF("! Config error: Line %d - bad string in exe\n", lcnt);
 	else
-		printf("! Config error: Line %d - bad string\n", lcnt);
+		INFOF("! Config error: Line %d - bad string\n", lcnt);
 	exit(error(ERR_BADCFG));
 }
 
 //----------------------------------------------------------
+static
 void  getMode (char* val,  int lcnt)
 {
 (void)val;
@@ -84,6 +94,7 @@ void  getMode (char* val,  int lcnt)
 }
 
 //----------------------------------------------------------
+static
 void  getOut (char* val,  int lcnt)
 {
 (void)val;
@@ -91,6 +102,7 @@ void  getOut (char* val,  int lcnt)
 	return;
 }
 //----------------------------------------------------------
+static
 bool  split (char* l,  int lcnt,  char** key,  char** val)
 {
 	char*  cp = strchr(l, '=');
@@ -106,7 +118,6 @@ bool  split (char* l,  int lcnt,  char** key,  char** val)
 }
 
 //----------------------------------------------------------
-static
 error_t  usrCfg (void)
 {
 	enum {
@@ -122,10 +133,10 @@ error_t  usrCfg (void)
 	char*     key  = NULL;
 	char*     val  = NULL;
 
-	printf("# Load config file %s\n", g.cfg);
+	INFOF("# Load config file %s\n", g.cfg);
 
 	if ( !(g.cfgfh = fopen(g.cfg, "rb")) )  {
-		printf("! Failed to open file |%s|\n", g.cfg);
+		INFOF("! Failed to open file |%s|\n", g.cfg);
 		return ERR_NOFILE;
 	}
 
@@ -141,22 +152,22 @@ error_t  usrCfg (void)
 		if (l[len -1] == '\n')  l[len -1] = '\0' ;
 
 		if (*l == '[') {
-			printf("  %s\n", l);
+			INFOF("  %s\n", l);
 			if (STRIEQ(l, "[options]")  ) { state = STATE_OPTIONS;  continue; }
 			if (STRIEQ(l, "[xlat_pre]") ) { state = STATE_PRE;      continue; }
 			if (STRIEQ(l, "[xlat_post]")) { state = STATE_POST;     continue; }
-			printf("! Config error: Line %d - valid headers are\n"
-			       "    [options] [xlat_pre] and [xlat_post]?\n", lcnt);
+			INFOF("! Config error: Line %d - valid headers are\n"
+			      "    [options] [xlat_pre] and [xlat_post]?\n", lcnt);
 			return ERR_BADCFG;
 		}
 
 		switch (state) {
 			case STATE_OPTIONS:
 				if (!split(l, lcnt, &key, &val)) {
-					printf("! Config error: Line %d - what are you trying to say?\n", lcnt);
+					INFOF("! Config error: Line %d - what are you trying to say?\n", lcnt);
 					return ERR_BADCFG;
 				}
-				printf("    |%s=%s|\n", key, val);
+				INFOF("    |%s=%s|\n", key, val);
 
 				if      (STRIEQ(key, "uart"      ))  g.uart = getStr(val, lcnt) ;
 				else if (STRIEQ(key, "term"      ))  g.term = getStr(val, lcnt) ;
@@ -176,7 +187,7 @@ error_t  usrCfg (void)
 				else if (STRIEQ(key, "matchMode" ))  getMode(val, lcnt) ;
 				else if (STRIEQ(key, "output"    ))  getOut(val, lcnt) ;
 				else {
-					printf("! Config error: Line %d - unknown option\n", lcnt);
+					INFOF("! Config error: Line %d - unknown option\n", lcnt);
 					return ERR_BADCFG;
 				}
 				break; 
@@ -189,9 +200,22 @@ error_t  usrCfg (void)
 		}// Switch state
 
 	}// FOREVER
-//printf("total=%d lines\n", lcnt);
+//INFOF("total=%d lines\n", lcnt);
 
 	return ERR_OK;
+}
+
+//----------------------------------------------------------------------------
+error_t  parseCLI (int argc,  char** argv) 
+{
+	if (argc > 2) {
+		INFOF("! Useage:  %s [/path/to/config]\n", argv[0]);
+	}
+	if (argc == 2) {
+		INFOF("# Config file: |%s|\n", argv[1]);
+		g.cfg = getStr(argv[1], -4);
+	}
+	return ERR_OK ;
 }
 
 //----------------------------------------------------------------------------
@@ -202,8 +226,6 @@ error_t  usrCfg (void)
 //
 error_t  init (void)
 {
-	error_t  err = ERR_OK;
-
 	g.cfg         = NULL;
 	g.cfgfh       = NULL;
 
@@ -214,8 +236,9 @@ error_t  init (void)
 
 	g.term        = NULL;
 	g.termfd      = -1;
+	g.termfh      = NULL;
 
-	g.device      = DEV_STDOUT;
+	g.device      = DEV_TTY | DEV_KEYLOG | DEV_STDOUT;
 
 	g.init_retry  = 10;
 	g.init_uSwait = 50 *1000;  // 50mS
@@ -248,17 +271,6 @@ error_t  init (void)
 
 	// on init: g.st.rptId != g.st.id
 	memset(g.st.rptId, '-', IDLEN);  // '-' hints to treat this as a key-down event
-
-//	checkCLI();
-
-	if (!g.cfg)   g.cfg  = getStr("default.cfg", -1);
-	if ((err = usrCfg()) != ERR_OK)  return err ;
-
-	// We just hard-tweak the keyboard map for the GBP symbol
-	if (g.uk)  setUK() ;
-
-	if (!g.uart)  g.uart = getStr("/dev/serial0", -2);  // Pi0..3 compatible
-	if (!g.term)  g.term = getStr("/dev/pts/1", -3);
 
 	atexit(cleanup);
 

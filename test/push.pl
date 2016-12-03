@@ -2,7 +2,7 @@
 # http://www.comptechdoc.org/os/linux/howlinuxworks/linux_hlkeycodes.html
 
 $TIOCSTI = 0x5412;
-$tty = "/dev/pts/2";
+$tty = "/dev/tty1";
 
 #$char = "a";
 #$char = $ARGV[0];

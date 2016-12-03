@@ -14,14 +14,18 @@
 //----------------------------------------------------------------------------
 error_t  openTerm (char* term)
 {
+	// Open the terminal for key-stuffing
 	if ((g.termfd  = open(term, O_WRONLY | O_NOCTTY | O_NDELAY)) == -1)
 		return ERR_NOTTY;
+
+	// Open the terminal for terminal commands
+	if ((g.termfh = fopen(term, "wb")) == NULL)  return ERR_NOTERM ;
 
 	return ERR_OK;
 }
 
 //----------------------------------------------------------------------------
-error_t  send2term (char* s)
+error_t  send2termfd (char* s)
 {
 	if ((s[0] == '\xff') && (s[1] != 0) && (s[2] == '\0')) {
 		if      (s[1] == '\xff')        ioctl(g.termfd, TIOCSTI, &s[2]) ;
@@ -33,6 +37,15 @@ error_t  send2term (char* s)
 	}
 
 	return ERR_OK;
+}
+
+//------------------------------------------------------------------------------
+void  send2termfh (char* s)
+{
+	fprintf(g.termfh, s);
+	fflush(g.termfh);
+
+	return;
 }
 
 //----------------------------------------------------------------------------

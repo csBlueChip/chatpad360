@@ -3,42 +3,43 @@
 #include <string.h>
 
 #include "error.h"
+#include "debug.h"
 
 //----------------------------------------------------------------------------
 error_t  error (error_t err)
 {
 	int disp = 1;
 
-	printf("! ");
+	INFOF("! ");
 	switch (err) {
 		case ERR_OK:
-			printf("No error\n");
+			INFOF("No error\n");
 			disp = 0;
 			break;
 		case ERR_NULL:
-			printf("NULL pointer\n");
+			INFOF("NULL pointer\n");
 			disp = 0;
 			break;
 		case ERR_NOTTY:
-			printf("Unable to open device. Ensure it is not in use by another application\n");
+			INFOF("Unable to open device. Ensure it is not in use by another application\n");
 			break;
 		case ERR_RDATTR:
-			printf("\n");
+			INFOF("\n");
 			break;
 		case ERR_TXFAIL:
-			printf("Write Fail");
+			INFOF("Write Fail");
 			break;
 		case ERR_RXFAIL:
-			printf("Read Fail");
+			INFOF("Read Fail");
 			break;
 		case ERR_INITFAIL:
-			printf("Failed to initialise the chatpadB");
+			INFOF("Failed to initialise the chatpadB");
 			break;
 		default:
-			printf("Error #%d", err);
+			INFOF("Error #%d", err);
 			break;
 	}
-	if (disp)  printf(" (%d - %s)\n", errno, strerror(errno)) ;
+	if (disp)  INFOF(" (%d - %s)\n", errno, strerror(errno)) ;
 	
 	return err;
 }

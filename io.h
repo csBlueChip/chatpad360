@@ -8,7 +8,8 @@
 
 //----------------------------------------------------------------------------
 error_t  openTerm (char* term) ;
-error_t  send2term (char* s) ;
+error_t  send2termfd (char* s) ;
+void     send2termfh (char* s) ;
 error_t  openUART (char* uart) ;
 error_t  tx (uint8_t* buf) ;
 error_t  rx (uint8_t* buf,  int len) ;
