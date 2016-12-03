@@ -11,6 +11,8 @@
 //----------------------------------------------------------------------------
 // The internal state table
 //
+#define DEFAULT_CFG "/etc/chatpad360.cfg"
+
 #define STATUSLEN  (6)
 #define IDLEN      (16)
 

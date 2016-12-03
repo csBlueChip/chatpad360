@@ -1,8 +1,3 @@
-#all:
-#	rm -f chatpad
-#	gcc chatpad.c debug.c error.c global.c serialIO.c -o chatpad
-#	[ -e chatpat ] || ./chatpad
-
 #------------------------------------------------------------------------------
 SHELL = /bin/sh
 
@@ -17,8 +12,8 @@ BLDTYPE=exe
 # Give your tool a name!
 # All file extensions are appended later
 #
-TOOLNAME = chatpad
-TESTPRAM = default.cfg
+TOOLNAME = chatpad360
+TESTPRAM = $(shell pwd)/default.cfg -n
 
 #------------------------------------------------------------------------------
 # Commands (for future cross platform support)
@@ -39,6 +34,9 @@ SEDI    = sed -i
 READELF = readelf
 SVNVER  = svnversion . -n | sed s/^[0-9]*://
 SVNTMP  = ~svntmp.tmp
+SUDO    = sudo
+CHMOD   = chmod
+CHOWN   = chown
 
 UNAME_A = uname -a
 UNAME_M = uname -m
@@ -123,15 +121,18 @@ ifeq ($(BLDTYPE), exe)
 	DIZDIR  = $(BINDIR)
 	ELFINFO = $(READELF) -sd $(EXE)
 	MOREELF = $(READELF) -sd $(EXE) | grep -e NEEDED -e FUNC.*GLOBAL.*UND
+	HELP    = "\texe       : Only make $(EXE)"
 
 else ifeq ($(BLDTYPE), arc)
 	TARGET  = $(ARC)
 	DIZDIR  = $(LIBDIR)
 	ELFINFO = $(READELF) -sh $(ARC)
 	MOREELF = $(ELFINFO) | grep -e ^F -e FILE -e FUNC | grep -v FUNC.*LOCAL
+	@$(ECHO) "\tarc       : Only make $(ARC)"
 
 else ifeq ($(BLDTYPE), dll)
 	@$(ECHO) "Broken Makefile : Dynamically Linked Library (DLL) support not written yet."
+#	@$(ECHO) "\tdll       : Only make $(DLL)"
 	false
 
 else
@@ -160,6 +161,24 @@ CC   = gcc $(CCDEF) $(CFLG) $(CMP) $(CERR)
 default: run
 
 #------------------------------------------------------------------------------
+.PHONY : install
+install : $(EXE) default.cfg
+	$(SUDO) $(CP)  default.cfg  /etc/chatpad360.cfg
+	$(SUDO) $(CHMOD)  600  /etc/chatpad360.cfg
+	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.cfg
+
+	$(SUDO) $(CP)  $(EXE)  /usr/sbin/$(TOOLNAME)
+	$(SUDO) $(CHMOD)  700  /etc/chatpad360.cfg
+	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.cfg
+
+#------------------------------------------------------------------------------
+.PHONY : uninstall
+uninstall :
+	#$(SUDO) $(RMF) /etc/chatpad360.cfg
+	$(SUDO) $(RMF) /usr/sbin/$(TOOLNAME)
+
+
+#------------------------------------------------------------------------------
 .PHONY : help
 help :
 	@$(ECHO) "Available make rules"
@@ -167,6 +186,9 @@ help :
 	@$(ECHO) ""
 	@$(ECHO) "\tall       : Build binary to: $(BINDIR)"
 	@$(ECHO) "\trun       : Test binary with: $(EXE) $(TESTPRAM)"
+	@$(ECHO) ""
+	@$(ECHO) $(HELP)
+	@$(ECHO) "\tdiz       : Only make $(DIZ)"
 	@$(ECHO) ""
 	@$(ECHO) "\ttidy      : Erase build directory: $(BDIR)"
 	@$(ECHO) "\tclean     : Erase build and binary dir: $(BDIR), $(BINDIR)"
@@ -176,6 +198,9 @@ help :
 	@$(ECHO) ""
 	@$(ECHO) "\tsvnignore : Set SVN to ignore temp files"
 	@$(ECHO) "\tsvnadd    : Add $(ARCH) build to svn repo"
+	@$(ECHO) ""
+	@$(ECHO) "\tinstall   : Copy key files in to their respective system directories"
+	@$(ECHO) "\tuninstall : Remove key files from their system directories"
 
 #------------------------------------------------------------------------------
 all : $(TARGET) $(DIZ)
@@ -236,16 +261,19 @@ svnignore :
 #------------------------------------------------------------------------------
 # Archve & Link rules
 #
-$(EXE) : $(OBJ) $(DEP)
+.PHONY : exe
+exe $(EXE) : $(OBJ) $(DEP)
 	@$(ECHO) "$(tPRE)$(aYEL) LINK: $@ $(tPOST)"
 	$(MD) $(BINDIR)
 	$(LINK) $(EXE) $(OBJ) $(LIBS)
 
-$(ARC) : $(OBJ) $(DEP) $(LIBHDR)
+.PHONY : arc
+arc $(ARC) : $(OBJ) $(DEP) $(LIBHDR)
 	@$(ECHO) "$(tPRE)$(aYEL) ARCHIVE: $@ $(tPOST)"
 	$(MD) $(LIBDIR)
 	$(AR) $(ARC) $(OBJ)
 
+#.PHONY : dll
 #$(DLL) : $(OBJ) $(DEP) $(LIBHDR)
 #<->@$(ECHO) "$(tPRE)$(aYEL) ARCHIVE: $@ $(tPOST)"
 #<->$(MD) $(LIBDIR)

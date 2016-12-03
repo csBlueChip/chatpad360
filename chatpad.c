@@ -469,7 +469,7 @@ void  decodeAllPkts (uint8_t*  buf)
 }
 
 //----------------------------------------------------------------------------
-int  main (int argc,  char** argv) 
+int  main (int xargc,  char** xargv) 
 {
 	int       i;
 	error_t   err = ERR_OK;
@@ -477,8 +477,22 @@ int  main (int argc,  char** argv)
 	time_t    st = 0;
 	time_t    now;
 
-	(void)argc;
-	(void)argv;
+	int argc = xargc;
+	char** argv = alloca(argc * (sizeof(char**) + 1));
+	memcpy(argv, xargv, argc * (sizeof(char**) + 1));
+
+	// Perhaps I should put in the effort:
+	//   http://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
+	// Go to daemon mode
+	// -d daemon, -n noise daemon
+	// ...Did someone say "argp"?
+	if ( ((argc >= 2) && (STREQ(argv[1], "-d"))) ||
+	     ((argc == 3) && (STREQ(argv[2], "-d")))   )
+		daemon(0,0);
+
+	if ( ((argc >= 2) && (STREQ(argv[1], "-n"))) ||
+	     ((argc == 3) && (STREQ(argv[2], "-n")))   )
+		daemon(0,1);
 
 	// Init global variables
 	INFOF("# System initialise\n");
@@ -488,7 +502,7 @@ int  main (int argc,  char** argv)
 	parseCLI(argc, argv);
 
 	// Parse the config file
-	if (!g.cfg)  g.cfg  = getStr("/etc/chatpad360.cfg", -1);
+	if (!g.cfg)  g.cfg  = getStr(DEFAULT_CFG, -1);
 	if ((err = usrCfg()) != ERR_OK)  return err ;
 
 	// Last ditch hope for a uart and a terminal

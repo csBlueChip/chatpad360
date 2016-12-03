@@ -90,7 +90,8 @@ void  getMode (char* val,  int lcnt)
 {
 (void)val;
 (void)lcnt;
-	return;
+INFOF("      (not written) - hard coded in global.c:init() as\n");
+INFOF("        MODE_STANDARD = UTF8|FUNC|CTRL|MOVE|SYS\n");
 }
 
 //----------------------------------------------------------
@@ -99,6 +100,9 @@ void  getOut (char* val,  int lcnt)
 {
 (void)val;
 (void)lcnt;
+INFOF("      (not written) - hard coded in global.c:init() as\n");
+INFOF("        DEV_TTY | DEV_KEYLOG | DEV_STDOUT\n");
+INFOF("        ...Keylogger is not written (yet)\n");
 	return;
 }
 //----------------------------------------------------------
@@ -211,7 +215,7 @@ error_t  parseCLI (int argc,  char** argv)
 	if (argc > 2) {
 		INFOF("! Useage:  %s [/path/to/config]\n", argv[0]);
 	}
-	if (argc == 2) {
+	if (argc >= 2) {
 		INFOF("# Config file: |%s|\n", argv[1]);
 		g.cfg = getStr(argv[1], -4);
 	}

@@ -7,6 +7,7 @@
 #include "global.h"
 #include "error.h"
 #include "xlat.h"
+#include "driverFn.h"
 
 //------------------------------------------------------------------------------
 static
@@ -53,6 +54,9 @@ error_t  id2event (char* id)
 
 	// Perform user "pre" translation
 	if (g.matchMode & MODE_PRE)  code = xlat_pre(id) ;
+
+	// Driver functions
+	if (!code)  driverFn(id) ;
 
 	// Perform Standard translations
 	if ((!code) && (id[0] == '+')) {  // Key-Down Event

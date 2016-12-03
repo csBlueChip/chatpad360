@@ -19,6 +19,7 @@ Events to control:
 	sendMouse(btn:13)      // button presses
 	sendMouse(scr:1,+10)   // absolute wheel scroll
 	sendKey(1b:5b:30)      // send hex to keyboard
+	sendTerm(1b:5b:31)     // send hex to terminal
 	sendSys(lock:sgOP)     // set locks
 	sendSys(lock:sgOP+)    // set locks & LEDs
 	sendSys(led:SGop)      // set LEDs
@@ -111,6 +112,7 @@ Bibliography
 	additional findings back to him, his site was refusing connections :/
 	Fotunately I saved the pages before they disappeared, so they are 
 	in an archive in the docs directory :)
+	...Cliffle is back!
 
 	Many many thanks to Grumbel from mp3car.com for sharing his fuzzing data
 	which was used to get the modifier LEDs working.  There is definitely more
@@ -156,7 +158,7 @@ Receive (from chatpad)
 		ss & 08 == Green LED  {0=off, 80=on}
 		ss & 01 == People LED {0=off, 80=on}
 	I have yet to identify the purpose for the other bits/bytes
-	tt and uu always seem to be the same number
+	tt and uu always seem to be the same number and it increments over time
 
 	Type-41 : {41, 02, 08, 11, 01, 11, 7D, 01, 00, 00, 00, A1}[12]
 		The 08 could be the number of bytes that follow (excluding the checksum)
