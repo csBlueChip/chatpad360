@@ -13,7 +13,7 @@ BLDTYPE=exe
 # All file extensions are appended later
 #
 TOOLNAME = chatpad360
-TESTPRAM = $(shell pwd)/default.cfg -n
+TESTPRAM = $(shell pwd)/default.conf -n
 
 #------------------------------------------------------------------------------
 # Commands (for future cross platform support)
@@ -162,10 +162,10 @@ default: run
 
 #------------------------------------------------------------------------------
 .PHONY : install
-install : $(EXE) default.cfg
-	$(SUDO) $(COPY)  default.cfg  /etc/chatpad360.cfg
-	$(SUDO) $(CHMOD)  600  /etc/chatpad360.cfg
-	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.cfg
+install : $(EXE) default.conf
+	$(SUDO) $(COPY)  default.conf  /etc/chatpad360.conf
+	$(SUDO) $(CHMOD)  600  /etc/chatpad360.conf
+	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.conf
 
 	$(SUDO) $(COPY)  $(EXE)  /usr/sbin/$(TOOLNAME)
 	$(SUDO) $(CHMOD)  755  /usr/sbin/$(TOOLNAME)
@@ -174,7 +174,7 @@ install : $(EXE) default.cfg
 #------------------------------------------------------------------------------
 .PHONY : uninstall
 uninstall :
-	#$(SUDO) $(RMF) /etc/chatpad360.cfg
+	#$(SUDO) $(RMF) /etc/chatpad360.conf
 	$(SUDO) $(RMF) /usr/sbin/$(TOOLNAME)
 
 

@@ -47,7 +47,7 @@ Shift & Shift Lock
 ============================
 
 The standard layout comes in groups and each group can be individually disabled
-in the configuration file.  See 'default.cfg' for details.
+in the configuration file.  See 'default.conf' for details.
 
 UTF8 Keycodes [MODE_UTF8 'U']:
 ------------------------------
