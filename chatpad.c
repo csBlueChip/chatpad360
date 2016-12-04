@@ -486,12 +486,9 @@ int  main (int xargc,  char** xargv)
 	// Go to daemon mode
 	// -d daemon, -n noise daemon
 	// ...Did someone say "argp"?
-	if ( ((argc >= 2) && (STREQ(argv[1], "-d"))) ||
-	     ((argc == 3) && (STREQ(argv[2], "-d")))   )
+	if ((argc >= 2) && (STREQ(argv[1], "-d")))
 		daemon(0,0);
-
-	if ( ((argc >= 2) && (STREQ(argv[1], "-n"))) ||
-	     ((argc == 3) && (STREQ(argv[2], "-n")))   )
+	if ((argc >= 2) && (STREQ(argv[1], "-n")))
 		daemon(0,1);
 
 	// Init global variables

@@ -163,13 +163,13 @@ default: run
 #------------------------------------------------------------------------------
 .PHONY : install
 install : $(EXE) default.cfg
-	$(SUDO) $(CP)  default.cfg  /etc/chatpad360.cfg
+	$(SUDO) $(COPY)  default.cfg  /etc/chatpad360.cfg
 	$(SUDO) $(CHMOD)  600  /etc/chatpad360.cfg
 	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.cfg
 
-	$(SUDO) $(CP)  $(EXE)  /usr/sbin/$(TOOLNAME)
-	$(SUDO) $(CHMOD)  700  /etc/chatpad360.cfg
-	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.cfg
+	$(SUDO) $(COPY)  $(EXE)  /usr/sbin/$(TOOLNAME)
+	$(SUDO) $(CHMOD)  755  /usr/sbin/$(TOOLNAME)
+	$(SUDO) $(CHOWN)  root:root  /usr/sbin/$(TOOLNAME)
 
 #------------------------------------------------------------------------------
 .PHONY : uninstall

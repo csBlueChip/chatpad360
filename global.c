@@ -210,15 +210,18 @@ error_t  usrCfg (void)
 }
 
 //----------------------------------------------------------------------------
+// Yes! This is a horrible hack job!
+//
 error_t  parseCLI (int argc,  char** argv) 
 {
 	if (argc > 2) {
-		INFOF("! Useage:  %s [/path/to/config]\n", argv[0]);
+		INFOF("! Useage:  %s [-n|-d] [/path/to/config]\n", argv[0]);
 	}
-	if (argc >= 2) {
-		INFOF("# Config file: |%s|\n", argv[1]);
-		g.cfg = getStr(argv[1], -4);
-	}
+
+	if ((argc == 2) && (argv[1][0] == '-'))  return ERR_OK ;
+
+	INFOF("# Config file: |%s|\n", argv[argc-1]);
+	g.cfg = getStr(argv[argc-1], -4);
 	return ERR_OK ;
 }
 
