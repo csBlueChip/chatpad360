@@ -73,7 +73,8 @@ error_t  openUART (char* uart)
 	//            open() shall NOT cause the terminal device to become 
 	//            the controlling terminal for the process.
 	//
-	if ((g.uartfd = open(uart, O_RDWR | O_NOCTTY | O_NDELAY)) == -1)
+//	if ((g.uartfd = open(uart, O_RDWR | O_NOCTTY | O_NDELAY)) == -1) // 100% CPU usage - handy for debugging
+	if ((g.uartfd = open(uart, O_RDWR | O_NOCTTY)) == -1)
 		return ERR_NOTTY ;
 
 	// Grab the current configuration options
