@@ -213,7 +213,7 @@ error_t  usrCfg (void)
 }
 
 //----------------------------------------------------------------------------
-// Yes! This is a horrible hack job!
+// Yes! I know this is "barely functional" ...the argp source is in the attic!
 //
 error_t  parseCLI (int argc,  char** argv) 
 {
@@ -221,15 +221,15 @@ error_t  parseCLI (int argc,  char** argv)
 	int  n = 1;
 
 	INFOF("! CLI: ||");
-	for (i = 1;  i < argc;  i++)
-		INFOF("%s|", argv[i]);
+	for (i = 1;  i < argc;  i++)  INFOF("%s|", argv[i]) ;
 	INFOF("|[%d]\n", argc);
 
 	if (argc > 3) {
-		INFOF("! Useage:  %s [-n|-d] [/path/to/config]\n", argv[0]);
+		INFOF("! Useage:  %s [-d] [/path/to/config]\n", argv[0]);
+		exit(ERR_BADCLI);
 	}
 
-	if ((argc >= 2) && (argv[1][0] == '-')) {
+	if ( (argc >= 2) && (STREQ(argv[1], "-d"')) ) {
 		if (argc == 2)  return ERR_OK ;
 		n = 2;
 	}

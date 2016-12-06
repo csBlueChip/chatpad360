@@ -540,7 +540,7 @@ int  main (int xargc,  char** xargv)
 
 	// Go to daemon mode
 	if ((argc >= 2) && (STREQ(argv[1], "-d")))  goDaemon() ;
-		syslog (LOG_NOTICE, "Chatpad360 daemon started.");
+	if (g.daemon)  syslog(LOG_NOTICE, "Chatpad360 daemon started.") ;
 	
 	// Init global variables
 	INFOF("# System initialise\n");
