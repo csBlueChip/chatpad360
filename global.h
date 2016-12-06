@@ -39,6 +39,7 @@ typedef
 		char*     cfg;          // Config filename
 		FILE*     cfgfh;        // File handle for config file
 
+		bool      daemon;       // Are we a daemon?
 		bool      alive;        // Are we receiveing status packets?
 
 		char*     uart;         // Name of input tty "/dev/ttyS0"

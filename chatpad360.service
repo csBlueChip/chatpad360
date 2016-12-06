@@ -1,0 +1,11 @@
+[Unit]
+Description=Chatpad360 Keyboard Controller v0.52
+After=getty@tty1.service
+
+[Service]
+ExecStart=/usr/sbin/chatpad360 -d /etc/chatpad360.conf
+Type=forking
+PIDFile=/var/run/chatpad360.pid
+
+[Install]
+WantedBy=default.target

@@ -35,6 +35,11 @@
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <syslog.h>
 
 #include "global.h"
 #include "cp360.h"
@@ -469,6 +474,58 @@ void  decodeAllPkts (uint8_t*  buf)
 }
 
 //----------------------------------------------------------------------------
+// http://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
+//
+void  goDaemon (void)
+{
+    int    i;
+    pid_t  pid;
+	FILE*  fh = NULL;
+
+	g.daemon = true;
+
+	/* Fork off the parent process */
+	pid = fork();
+
+	/* An error occurred */
+	if (pid < 0)  exit(EXIT_FAILURE) ;
+	/* Success: Let the parent terminate */
+	if (pid > 0)  exit(EXIT_SUCCESS) ;
+	/* On success: The child process becomes session leader */
+	if (setsid() < 0)  exit(EXIT_FAILURE) ;
+
+	/* Catch, ignore and handle signals */
+	//TODO: Implement a working signal handler */
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
+
+	/* Fork off for the second time*/
+	pid = fork();
+	/* An error occurred */
+	if (pid < 0)  exit(EXIT_FAILURE) ;
+	/* Success: Let the parent terminate */
+	if (pid > 0)  exit(EXIT_SUCCESS);
+
+	/* Create PID file */
+	if (!(fh = fopen("/var/run/chatpad360.pid", "wb")))  exit (EXIT_FAILURE) ;
+	fprintf(fh, "%d", getpid());
+	fclose(fh);
+
+	/* Set new file permissions */
+	umask(0);
+
+	/* Set the working directory */
+	chdir("/");
+
+	/* Close all open file descriptors */
+	for (i = sysconf(_SC_OPEN_MAX);  i > 0  ; i--)  close(i) ;
+
+	/* Open the log file */
+	openlog("Chatpad360 daemon", LOG_PID, LOG_DAEMON);
+	syslog(LOG_NOTICE, "Chatpad360 daemon started.");
+}
+
+//----------------------------------------------------------------------------
 int  main (int xargc,  char** xargv) 
 {
 	int       i;
@@ -481,16 +538,10 @@ int  main (int xargc,  char** xargv)
 	char** argv = alloca(argc * (sizeof(char**) + 1));
 	memcpy(argv, xargv, argc * (sizeof(char**) + 1));
 
-	// Perhaps I should put in the effort:
-	//   http://stackoverflow.com/questions/17954432/creating-a-daemon-in-linux
 	// Go to daemon mode
-	// -d daemon, -n noise daemon
-	// ...Did someone say "argp"?
-	if ((argc >= 2) && (STREQ(argv[1], "-d")))
-		daemon(0,0);
-	if ((argc >= 2) && (STREQ(argv[1], "-n")))
-		daemon(0,1);
-
+	if ((argc >= 2) && (STREQ(argv[1], "-d")))  goDaemon() ;
+		syslog (LOG_NOTICE, "Chatpad360 daemon started.");
+	
 	// Init global variables
 	INFOF("# System initialise\n");
 	init();
@@ -540,6 +591,7 @@ int  main (int xargc,  char** xargv)
 	showStatus();
 
 	INFOF("# Running...");
+	if (g.daemon)  syslog(LOG_NOTICE, "Chatpad360 daemon running.") ;
 	FOREVER {
 		error_t  err;
 

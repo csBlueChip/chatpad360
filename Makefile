@@ -14,6 +14,7 @@ BLDTYPE=exe
 #
 TOOLNAME = chatpad360
 TESTPRAM = $(shell pwd)/default.conf -n
+SERVICE  = chatpad360.sh
 
 #------------------------------------------------------------------------------
 # Commands (for future cross platform support)
@@ -161,24 +162,6 @@ CC   = gcc $(CCDEF) $(CFLG) $(CMP) $(CERR)
 default: run
 
 #------------------------------------------------------------------------------
-.PHONY : install
-install : $(EXE) default.conf
-	$(SUDO) $(COPY)  default.conf  /etc/chatpad360.conf
-	$(SUDO) $(CHMOD)  600  /etc/chatpad360.conf
-	$(SUDO) $(CHOWN)  root:root  /etc/chatpad360.conf
-
-	$(SUDO) $(COPY)  $(EXE)  /usr/sbin/$(TOOLNAME)
-	$(SUDO) $(CHMOD)  755  /usr/sbin/$(TOOLNAME)
-	$(SUDO) $(CHOWN)  root:root  /usr/sbin/$(TOOLNAME)
-
-#------------------------------------------------------------------------------
-.PHONY : uninstall
-uninstall :
-	#$(SUDO) $(RMF) /etc/chatpad360.conf
-	$(SUDO) $(RMF) /usr/sbin/$(TOOLNAME)
-
-
-#------------------------------------------------------------------------------
 .PHONY : help
 help :
 	@$(ECHO) "Available make rules"
@@ -201,6 +184,52 @@ help :
 	@$(ECHO) ""
 	@$(ECHO) "\tinstall   : Copy key files in to their respective system directories"
 	@$(ECHO) "\tuninstall : Remove key files from their system directories"
+
+#------------------------------------------------------------------------------
+.PHONY : install
+install : uninstall $(EXE) default.conf $(SERVICE)
+	@$(ECHO) "$(tPRE)$(aRED) INSTALL: $(EXE) $(tPOST)"
+
+	# Don't overwrite an existing conf file
+	# There could be a LOT of work stored in it!
+	@if [ -f /etc/chatpad360.conf ] ; then \
+		$(ECHO) "$(aBRT)$(aWHT)Not overwriting config file /etc/chatpad360.conf$(aNRM) $(aWHT)(Loss of work)$(aNRM)" ;\
+	else \
+		$(SUDO) $(COPY)  default.conf /etc/chatpad360.conf ;\
+	fi
+	$(SUDO) $(CHMOD) 600          /etc/chatpad360.conf
+	$(SUDO) $(CHOWN) root:root    /etc/chatpad360.conf
+
+	@$(ECHO) ""
+	$(SUDO) $(COPY)  $(EXE)    /usr/sbin/$(TOOLNAME)
+	$(SUDO) $(CHMOD) 755       /usr/sbin/$(TOOLNAME)
+	$(SUDO) $(CHOWN) root:root /usr/sbin/$(TOOLNAME)
+
+	@$(ECHO) ""
+	$(SUDO) $(COPY)  $(SERVICE) /etc/init.d/$(SERVICE)
+	$(SUDO) $(CHMOD) 755        /etc/init.d/$(SERVICE)
+	$(SUDO) $(CHOWN) root:root  /etc/init.d/$(SERVICE)
+
+	@$(ECHO) ""
+	update-rc.d chatpad360.sh defaults 90
+
+#------------------------------------------------------------------------------
+.PHONY : uninstall
+uninstall :
+	@$(ECHO) "$(tPRE)$(aRED) UNINSTALL: $(EXE) $(tPOST)"
+
+	$(SUDO) $(RMF) /usr/sbin/$(TOOLNAME)
+
+	$(SUDO) $(RMF) /etc/init.d/$(SERVICE)
+
+	@$(ECHO) "$(aBRT)$(aWHT)Not removing config file /etc/chatpad360.conf$(aNRM) $(aWHT)(Loss of work)$(aNRM)"
+	#$(SUDO) $(RMF) /etc/chatpad360.conf
+
+	@$(ECHO) "$(aBRT)$(aWHT)Not removing logfile /var/log/chatpad360.log$(aNRM) $(aWHT)(Loss of history)$(aNRM)"
+	#$(SUDO) $(RMF) /var/log/chatpad360.log
+
+	@$(ECHO) ""
+	update-rc.d -f chatpad360.sh remove
 
 #------------------------------------------------------------------------------
 all : $(TARGET) $(DIZ)

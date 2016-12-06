@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 
 //----------------------------------------------------------------------------
 static
@@ -31,6 +32,8 @@ void  cleanup (void)
 	FCLOSE(g.termfh);
 
 	FCLOSE(g.cfgfh);
+
+	if (g.daemon)  syslog(LOG_NOTICE, "Chatpad360 daemon running.") ;
 
 	return;
 }
@@ -214,14 +217,24 @@ error_t  usrCfg (void)
 //
 error_t  parseCLI (int argc,  char** argv) 
 {
-	if (argc > 2) {
+	int  i;
+	int  n = 1;
+
+	INFOF("! CLI: ||");
+	for (i = 1;  i < argc;  i++)
+		INFOF("%s|", argv[i]);
+	INFOF("|[%d]\n", argc);
+
+	if (argc > 3) {
 		INFOF("! Useage:  %s [-n|-d] [/path/to/config]\n", argv[0]);
 	}
 
-	if ((argc == 2) && (argv[1][0] == '-'))  return ERR_OK ;
-
-	INFOF("# Config file: |%s|\n", argv[argc-1]);
-	g.cfg = getStr(argv[argc-1], -4);
+	if ((argc >= 2) && (argv[1][0] == '-')) {
+		if (argc == 2)  return ERR_OK ;
+		n = 2;
+	}
+	INFOF("# Config file: |%s|\n", argv[n]);
+	g.cfg = getStr(argv[n], -4);
 	return ERR_OK ;
 }
 
@@ -245,7 +258,7 @@ error_t  init (void)
 	g.termfd      = -1;
 	g.termfh      = NULL;
 
-	g.device      = DEV_TTY | DEV_KEYLOG | DEV_STDOUT;
+	g.device      = DEV_TTY;// | DEV_STDOUT | DEV_KEYLOG;
 
 	g.init_retry  = 10;
 	g.init_uSwait = 50 *1000;  // 50mS

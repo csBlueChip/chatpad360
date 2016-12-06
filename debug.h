@@ -5,7 +5,7 @@
 #define PKT_DEBUG 0
 #define KEY_DEBUG 0
 #define RUN_DEBUG 0
-#define INF_DEBUG 1
+#define INF_DEBUG 0
 
 //----------------------------------------------------------------------------
 #include <stdio.h>
