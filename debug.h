@@ -9,6 +9,7 @@
 
 //----------------------------------------------------------------------------
 #include <stdio.h>
+#include <syslog.h>
 
 //----------------------------------------------------------------------------
 #if PKT_DEBUG == 1
@@ -30,7 +31,8 @@
 #endif
 
 #if INF_DEBUG == 1
-#	define INFOF(...)  do{ printf(__VA_ARGS__);  fflush(stdout); }while(0)
+//#	define INFOF(...)  do{ printf(__VA_ARGS__);  fflush(stdout); }while(0)
+#	define INFOF(...)  do{ syslog(LOG_NOTICE, __VA_ARGS__); }while(0)
 #else
 #	define INFOF(...)  (void)0
 #endif

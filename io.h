@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 //----------------------------------------------------------------------------
+error_t  reopenAll (void) ;
 error_t  openTerm (char* term) ;
 error_t  send2termfd (char* s) ;
 void     send2termfh (char* s) ;

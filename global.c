@@ -218,7 +218,6 @@ error_t  usrCfg (void)
 error_t  parseCLI (int argc,  char** argv) 
 {
 	int  i;
-	int  n = 1;
 
 	INFOF("! CLI: ||");
 	for (i = 1;  i < argc;  i++)  INFOF("%s|", argv[i]) ;
@@ -229,12 +228,15 @@ error_t  parseCLI (int argc,  char** argv)
 		exit(ERR_BADCLI);
 	}
 
-	if ( (argc >= 2) && (STREQ(argv[1], "-d"')) ) {
-		if (argc == 2)  return ERR_OK ;
-		n = 2;
+	if (argc >= 2) {
+		int  n = 1;
+		if (STREQ(argv[1], "-d")) {
+			if (argc == 2)  return ERR_OK ;
+			n = 2;
+		}
+		g.cfg = getStr(argv[n], -4);
 	}
-	INFOF("# Config file: |%s|\n", argv[n]);
-	g.cfg = getStr(argv[n], -4);
+
 	return ERR_OK ;
 }
 

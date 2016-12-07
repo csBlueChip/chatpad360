@@ -14,7 +14,7 @@ BLDTYPE=exe
 #
 TOOLNAME = chatpad360
 TESTPRAM = $(shell pwd)/default.conf -n
-SERVICE  = chatpad360.sh
+SERVICE  = chatpad360.service
 
 #------------------------------------------------------------------------------
 # Commands (for future cross platform support)
@@ -190,8 +190,8 @@ help :
 install : uninstall $(EXE) default.conf $(SERVICE)
 	@$(ECHO) "$(tPRE)$(aRED) INSTALL: $(EXE) $(tPOST)"
 
-	# Don't overwrite an existing conf file
-	# There could be a LOT of work stored in it!
+# Don't overwrite an existing conf file
+# There could be a LOT of work stored in it!
 	@if [ -f /etc/chatpad360.conf ] ; then \
 		$(ECHO) "$(aBRT)$(aWHT)Not overwriting config file /etc/chatpad360.conf$(aNRM) $(aWHT)(Loss of work)$(aNRM)" ;\
 	else \
@@ -206,30 +206,35 @@ install : uninstall $(EXE) default.conf $(SERVICE)
 	$(SUDO) $(CHOWN) root:root /usr/sbin/$(TOOLNAME)
 
 	@$(ECHO) ""
-	$(SUDO) $(COPY)  $(SERVICE) /etc/init.d/$(SERVICE)
-	$(SUDO) $(CHMOD) 755        /etc/init.d/$(SERVICE)
-	$(SUDO) $(CHOWN) root:root  /etc/init.d/$(SERVICE)
+	$(SUDO) $(COPY)  $(SERVICE) /etc/systemd/$(SERVICE)
+	$(SUDO) $(CHMOD) 755        /etc/systemd/$(SERVICE)
+	$(SUDO) $(CHOWN) root:root  /etc/systemd/$(SERVICE)
 
 	@$(ECHO) ""
-	update-rc.d chatpad360.sh defaults 90
+	systemctl daemon-reload
+	systemctl enable $(SERVICE)
+	systemctl start $(SERVICE)
 
 #------------------------------------------------------------------------------
 .PHONY : uninstall
 uninstall :
 	@$(ECHO) "$(tPRE)$(aRED) UNINSTALL: $(EXE) $(tPOST)"
 
+	systemctl stop $(SERVICE)
+	systemctl disable $(SERVICE)
+	systemctl daemon-reload
+	@$(ECHO) ""
+
 	$(SUDO) $(RMF) /usr/sbin/$(TOOLNAME)
 
-	$(SUDO) $(RMF) /etc/init.d/$(SERVICE)
+	$(SUDO) $(RMF) /etc/systemd/$(SERVICE)
 
 	@$(ECHO) "$(aBRT)$(aWHT)Not removing config file /etc/chatpad360.conf$(aNRM) $(aWHT)(Loss of work)$(aNRM)"
 	#$(SUDO) $(RMF) /etc/chatpad360.conf
 
-	@$(ECHO) "$(aBRT)$(aWHT)Not removing logfile /var/log/chatpad360.log$(aNRM) $(aWHT)(Loss of history)$(aNRM)"
-	#$(SUDO) $(RMF) /var/log/chatpad360.log
+#	@$(ECHO) "$(aBRT)$(aWHT)Not removing logfile /var/log/chatpad360.log$(aNRM) $(aWHT)(Loss of history)$(aNRM)"
+#	#$(SUDO) $(RMF) /var/log/chatpad360.log
 
-	@$(ECHO) ""
-	update-rc.d -f chatpad360.sh remove
 
 #------------------------------------------------------------------------------
 all : $(TARGET) $(DIZ)

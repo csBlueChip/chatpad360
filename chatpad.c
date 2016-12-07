@@ -577,8 +577,8 @@ int  main (int xargc,  char** xargv)
 		if (tx(cp_init) != ERR_OK)  (void)error(ERR_TXFAIL) ;
 
 		// Give the chatpad a moment to initialise
-		usleep(g.init_uSwait);
-		INFOF("  < Check for status message");
+//		usleep(g.init_uSwait);
+//		INFOF("  < Check for status message");
 
 		// See if there is a Status message (yet)
 		if (rx(buf, sizeof(buf)) != ERR_OK) (void)error(ERR_RXFAIL) ;

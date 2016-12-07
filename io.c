@@ -1,6 +1,8 @@
 #include "io.h"
 #include "debug.h"
 #include "global.h"
+#include "macros.h"
+#include "error.h"
 
 #include <termios.h>
 #include <unistd.h>
@@ -9,7 +11,21 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 
-#include "macros.h"
+
+//----------------------------------------------------------------------------
+error_t  reopenAll (void)
+{
+	error_t  err;
+
+	CLOSE(g.uartfd);
+	CLOSE(g.termfd);
+	FCLOSE(g.termfh);
+
+	if ((err = openUART(g.uart)) != ERR_OK)  return err ;
+	if ((err = openTerm(g.term)) != ERR_OK)  return err ;
+
+	return ERR_OK; 
+}
 
 //----------------------------------------------------------------------------
 error_t  openTerm (char* term)
@@ -31,9 +47,7 @@ error_t  send2termfd (char* s)
 		if      (s[1] == '\xff')        ioctl(g.termfd, TIOCSTI, &s[2]) ;
 		else if (INRANGE(s[1], 1, 26))  ioctl(g.termfd, TIOCSTI, &s[1]) ;
 	} else {
-		while (*s)
-//!echk
-			ioctl(g.termfd, TIOCSTI, s++) ;
+		while (*s)  ioctl(g.termfd, TIOCSTI, s++) ;
 	}
 
 	return ERR_OK;

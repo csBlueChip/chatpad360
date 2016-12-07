@@ -24,6 +24,7 @@ typedef
 		ERR_BADCFG   = 17,
 		ERR_NOFILE   = 18,
 		ERR_NOTERM   = 19,
+		ERR_BADCLI   = 20,
 	}
 error_t;
 
